@@ -14,8 +14,24 @@ function App() {
   const [events, setEvents] = useState([])
 
   useEffect(() => {
-    getEvents().then((events) => setEvents(events.data["events"]))
-  }, [])
+    getEvents().then((res) => {
+      const data = res.data["events"];
+      const eventsMap = {};
+      data.forEach((event) => {
+        const day = getDayID(event.startTime * 1000);
+        if (!eventsMap[day]) {
+          eventsMap[day] = [];
+        }
+        eventsMap[day].push(event);
+      });
+      Object.keys(eventsMap).forEach((day) => {
+        eventsMap[day].sort((a, b) => {
+          return a.startTime - b.startTime;
+        });
+      });
+      setEvents(eventsMap);
+    });
+  }, []);
 
   //https://github.com/HackIllinois/site-2021/blob/master/src/pages/Schedule/EventDisplay/Events.tsx
   const formatAMPM = (dateinms) => {
@@ -46,16 +62,10 @@ function App() {
   const getDayID = (dateinms) => {
     let date = new Date(dateinms);
     let day = date.getDate();
-    return date.toLocaleString('default', { month: 'long' }) + day;
+    return day;
   }
   return (
     <>
-      {/* <div>
-        <Calendar 
-        // defaultActiveStartDate={new Date(2021, 3, 9)} 
-        defaultValue={[new Date(2023, 1, 25), new Date(2023, 1, 26)]}
-        />
-      </div> */}
       <br />
 
       <Tabs>
@@ -64,11 +74,10 @@ function App() {
           <Tab>Saturday (February 25th)</Tab>
           <Tab>Sunday (February 26th)</Tab>
         </TabList>
-      </Tabs>     
-      <br />
-       <div>
-        <VStack>
-            {events?.map((event) => (
+        <TabPanels>
+          {Object.keys(events).map((key) => (
+            <TabPanel>
+              {events[key]?.map((event) => (
               <Center>
               <div id={getDayID(event.startTime*1000)}>
                 <Card maxW='md' minW='md' variant='filled'>
@@ -80,21 +89,23 @@ function App() {
                       <Text>
                         {getDay(event.startTime*1000)}
                         <br />
-                        
+
                         {getRange(event.startTime, event.endTime)}
                         <br />
-                        {event.description} 
-                        
+                        {event.description}
+
                       </Text>
                   </CardBody>
                 </Card>
                 <br />
               </div>
               </Center>
+              ))}
+            </TabPanel>
           ))}
-        </VStack>
-      </div>
-      
+          </TabPanels>
+      </Tabs>
+
     </>
   )
 }
